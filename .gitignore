@@ -1,0 +1,8 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+*.sqlite3
+tmp_smoke.sqlite3
+telegram-group-assistant-deploy.zip
+_remote_*.py
