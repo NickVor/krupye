@@ -6,3 +6,6 @@ __pycache__/
 tmp_smoke.sqlite3
 telegram-group-assistant-deploy.zip
 _remote_*.py
+_retry_caddy.py
+_set_domain.py
+_wait_https.py
