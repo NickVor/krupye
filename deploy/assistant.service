@@ -1,0 +1,17 @@
+[Unit]
+Description=Telegram Group Assistant
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/telegram-group-assistant
+EnvironmentFile=/opt/telegram-group-assistant/.env
+ExecStart=/opt/telegram-group-assistant/.venv/bin/python -m app.main
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+User=assistant
+Group=assistant
+
+[Install]
+WantedBy=multi-user.target
