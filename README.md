@@ -1,51 +1,42 @@
-# Крупье: Telegram Group Assistant
+# Krupye: Telegram Group Assistant
 
-Telegram-ассистент для групп и личных чатов с дополнительными экранами
-Telegram Web App. Он отвечает на вопросы, показывает каталог функций и создаёт
-расширенные карточки для ответов, которые неудобно читать в одном сообщении.
+Krupye is a small Telegram group assistant with a companion Telegram Web App for richer responses.
 
-## Текущий статус
+The assistant can answer questions, list available functions, and create Web App screens for structured content that does not fit well into a single Telegram message.
 
-- Продакшен: [bot.n7k.ru](https://bot.n7k.ru)
-- Бот и Web App работают на одном Ubuntu VPS.
-- HTTPS и обратный прокси обеспечивает Caddy.
-- LLM подключена через OpenRouter с маршрутом `openrouter/free`.
-- Данные экранов хранятся в SQLite.
+## Features
 
-## Возможности
+- `/start` - short greeting.
+- `/ask question` - assistant response.
+- `/functions` - list of available assistant functions.
+- `/screen topic` - creates a Web App screen with a richer answer.
+- Private chats can open Web App screens directly.
+- Group chats receive a normal HTTPS link button to the generated screen.
 
-- `/start` - краткое приветствие.
-- `/ask вопрос` - ответ ассистента.
-- `/functions` - список доступных команд.
-- `/screen тема` - Web App-экран с развёрнутым ответом. В личном чате он
-  открывается как Telegram Web App, в группе - по обычной HTTPS-ссылке.
-- Обычное сообщение обрабатывается в личном чате, при упоминании бота в группе
-  или в ответ на сообщение бота.
-
-## Устройство
+## Architecture
 
 ```text
 Telegram <- aiogram bot + FastAPI <- Caddy <- HTTPS
                     |       |
                     |       +-- Web App screens
-                    +-- OpenRouter / LLM
+                    +-- OpenAI-compatible LLM provider
                     +-- SQLite
 ```
 
-Основные модули:
+Main modules:
 
-- `app/bot/telegram.py` - Telegram-команды и обработка сообщений.
-- `app/assistant/llm.py` - единственная точка вызова LLM.
-- `app/assistant/functions.py` - реестр пользовательских функций.
-- `app/web/` - FastAPI-маршруты и HTML Web App.
-- `app/storage/` - SQLite и хранение экранов.
-- `deploy/` - systemd, Caddy и сценарии установки и диагностики.
+- `app/bot/telegram.py` - Telegram commands and message handling.
+- `app/assistant/llm.py` - the only LLM provider integration point.
+- `app/assistant/functions.py` - user-facing assistant function registry.
+- `app/web/` - FastAPI routes and Web App HTML.
+- `app/storage/` - SQLite initialization and screen storage.
+- `deploy/` - generic systemd, Caddy, installation, and diagnostics files.
 
-## Локальный запуск
+## Local Run
 
-1. Создайте `.env` по примеру `.env.example`.
-2. Укажите `BOT_TOKEN` и публичный HTTPS-адрес в `PUBLIC_BASE_URL`.
-3. Установите зависимости и запустите приложение:
+1. Create `.env` from `.env.example`.
+2. Set `BOT_TOKEN` and `PUBLIC_BASE_URL`.
+3. Install dependencies and start the app:
 
 ```powershell
 python -m venv .venv
@@ -54,33 +45,27 @@ pip install -r requirements.txt
 python -m app.main
 ```
 
-Для Telegram Web App `PUBLIC_BASE_URL` должен быть доступен из интернета по
-HTTPS. При локальной разработке используйте туннель.
+For Telegram Web Apps, `PUBLIC_BASE_URL` must be reachable from the internet over HTTPS. For local development, use a tunnel or test the generated local URL in a browser.
 
-## Подключение LLM
+## LLM Provider
 
-По умолчанию проект совместим с OpenAI API. Для текущей конфигурации
-OpenRouter добавьте в `.env`:
+The project uses an OpenAI-compatible API wrapper. Configure the provider through `.env`:
 
 ```env
-OPENAI_API_KEY=your-openrouter-key
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-ASSISTANT_MODEL=openrouter/free
+OPENAI_API_KEY=your-provider-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+ASSISTANT_MODEL=gpt-4.1-mini
 ```
 
-`openrouter/free` выбирает доступную бесплатную модель. У бесплатного пула
-могут быть очереди и временные ограничения; для стабильной нагрузки укажите
-конкретную платную модель OpenRouter.
+OpenRouter or another OpenAI-compatible provider can be used by changing `OPENAI_BASE_URL` and `ASSISTANT_MODEL`.
 
-Ключи, токены и пароли не хранятся в репозитории и не должны попадать в чаты,
-логи или Markdown-файлы.
+Do not commit API keys, bot tokens, passwords, `.env` files, private keys, production domains, server IPs, provider account names, or other infrastructure identifiers.
 
-## Развёртывание
+## Deployment
 
-Продакшен-инструкции, команды проверки и схема портов находятся в
-[deploy/README.md](deploy/README.md).
+Generic VPS deployment notes are in [deploy/README.md](deploy/README.md).
 
-После изменения Python-кода выполните быструю проверку:
+After Python changes, run a quick syntax check:
 
 ```powershell
 .\.venv\Scripts\python.exe -m compileall app

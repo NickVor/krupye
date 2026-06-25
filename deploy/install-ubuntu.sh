@@ -17,8 +17,8 @@ if [ -z "${BOT_TOKEN:-}" ]; then
 fi
 
 if [ -z "$PUBLIC_BASE_URL" ]; then
-  SERVER_IP="$(hostname -I | awk '{print $1}')"
-  PUBLIC_BASE_URL="https://${SERVER_IP//./-}.sslip.io"
+  echo "PUBLIC_BASE_URL is required"
+  exit 1
 fi
 
 PUBLIC_HOST="$(printf '%s' "$PUBLIC_BASE_URL" | sed -E 's#^https?://##; s#/.*$##')"
@@ -68,9 +68,6 @@ if ss -ltnp | grep -E ':(80|443)\s' | grep -v caddy; then
   echo
   echo "Port 80 or 443 is already occupied. Telegram Web Apps need public HTTPS."
   echo "Stop or reconfigure the service above, then rerun this installer."
-  echo "If this is 3X-UI and VPN is not important now, usually one of these helps:"
-  echo "  systemctl stop x-ui || true"
-  echo "  systemctl stop 3x-ui || true"
   exit 1
 fi
 

@@ -77,7 +77,7 @@ Do not use a Web App screen for a short answer that reads naturally inside Teleg
 
 ## Deployment Guidance
 
-Production needs:
+Production deployments need:
 
 - Ubuntu 24.04 VPS;
 - 1 CPU and 1 GB RAM minimum;
@@ -85,9 +85,11 @@ Production needs:
 - outbound access to `api.telegram.org`;
 - public HTTPS URL.
 
-The current production domain is `https://bot.n7k.ru`. Caddy owns ports `80` and
-`443`; the 3X-UI/Xray inbound was moved to `8443`. Keep this separation when
-changing either service. Telegram Web Apps require public HTTPS.
+This public repository must stay environment-neutral. Do not commit real
+production domains, server IP addresses, provider names, VPN panel details, or
+other infrastructure identifiers. Use placeholders such as
+`https://your-domain.example` in documentation and examples. Telegram Web Apps
+require public HTTPS.
 
 After deployment, verify with:
 

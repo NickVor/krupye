@@ -1,104 +1,89 @@
-# Развёртывание на VPS
+# VPS Deployment
 
-## Текущая продакшен-схема
+This directory contains generic deployment files for running the Telegram assistant on an Ubuntu VPS.
+
+Do not put real production domains, server IP addresses, provider names, account details, VPN panel details, tokens, passwords, or private keys in this public repository.
+
+## Generic Production Shape
 
 ```text
-bot.n7k.ru:443 -> Caddy -> 127.0.0.1:8000 -> FastAPI + Telegram bot
-                                           -> OpenRouter
-                                           -> SQLite
+your-domain.example:443 -> Caddy -> 127.0.0.1:8000 -> FastAPI + Telegram bot
+                                                     -> LLM provider
+                                                     -> SQLite
 ```
 
-| Компонент | Значение |
+| Component | Example value |
 | --- | --- |
-| Публичный адрес | `https://bot.n7k.ru` |
-| Каталог приложения | `/opt/telegram-group-assistant` |
-| systemd-служба | `telegram-group-assistant` |
-| Web App | `127.0.0.1:8000` |
-| HTTPS | Caddy на портах `80` и `443` |
-| VPN (3X-UI/Xray) | `8443` |
+| Public URL | `https://your-domain.example` |
+| App directory | `/opt/telegram-group-assistant` |
+| systemd service | `telegram-group-assistant` |
+| Web App bind address | `127.0.0.1:8000` |
+| HTTPS | Caddy on ports `80` and `443` |
 
-Порт `443` принадлежит Caddy. Не переназначайте на него VPN inbound, иначе
-Web App и выпуск сертификата перестанут работать.
+Ports `80` and `443` must be available for Caddy. Telegram Web Apps require public HTTPS.
 
-## Настройки окружения
+## Environment
 
-Файл `/opt/telegram-group-assistant/.env` содержит секреты и имеет права
-доступа только для владельца. Пример рабочей конфигурации:
+The deployment creates an `.env` file on the server. That file contains secrets and must not be committed.
+
+Example:
 
 ```env
 BOT_TOKEN=replace-with-telegram-token
-PUBLIC_BASE_URL=https://bot.n7k.ru
-OPENAI_API_KEY=your-openrouter-key
-OPENAI_BASE_URL=https://openrouter.ai/api/v1
-ASSISTANT_MODEL=openrouter/free
+PUBLIC_BASE_URL=https://your-domain.example
+OPENAI_API_KEY=your-provider-key
+OPENAI_BASE_URL=https://api.openai.com/v1
+ASSISTANT_MODEL=gpt-4.1-mini
 DATABASE_PATH=/opt/telegram-group-assistant/data/assistant.sqlite3
 HOST=127.0.0.1
 PORT=8000
 LOG_LEVEL=info
 ```
 
-`openrouter/free` подходит для запуска и тестов. Для предсказуемого качества,
-скорости и лимитов используйте конкретную модель вместо бесплатного маршрута.
+## Initial Install
 
-## Первичная установка
-
-На чистом Ubuntu VPS выполните из каталога проекта:
+Run from the project directory on a clean Ubuntu VPS:
 
 ```bash
 BOT_TOKEN="replace-with-telegram-token" \
-OPENAI_API_KEY="your-openrouter-key" \
-OPENAI_BASE_URL="https://openrouter.ai/api/v1" \
-ASSISTANT_MODEL="openrouter/free" \
-PUBLIC_BASE_URL="https://bot.n7k.ru" \
+OPENAI_API_KEY="your-provider-key" \
+OPENAI_BASE_URL="https://api.openai.com/v1" \
+ASSISTANT_MODEL="gpt-4.1-mini" \
+PUBLIC_BASE_URL="https://your-domain.example" \
 bash deploy/install-ubuntu.sh
 ```
 
-Сценарий создаёт системного пользователя `assistant`, устанавливает
-зависимости, создаёт systemd-службу и конфигурирует Caddy по имени из
-`PUBLIC_BASE_URL`.
+Before starting, make sure the domain points to the VPS and ports `80` and `443` are free.
 
-Перед запуском убедитесь, что DNS-запись `A` для домена уже указывает на VPS и
-что порты `80` и `443` свободны. Caddy выпустит и будет продлевать сертификат
-автоматически.
+## Updating
 
-## Обновление приложения
-
-1. Скопируйте изменённые исходники в `/opt/telegram-group-assistant`, не
-   перезаписывая `.env` и каталог `data`.
-2. Если менялся `requirements.txt`, обновите зависимости:
+1. Copy changed source files into `/opt/telegram-group-assistant` without overwriting `.env` or `data`.
+2. If `requirements.txt` changed, update dependencies:
 
 ```bash
 /opt/telegram-group-assistant/.venv/bin/pip install -r /opt/telegram-group-assistant/requirements.txt
 ```
 
-3. Перезапустите службу:
+3. Restart the service:
 
 ```bash
 systemctl restart telegram-group-assistant
 systemctl is-active telegram-group-assistant
 ```
 
-Версия `openai==1.35.7` в проекте требует `httpx<0.28`; ограничение закреплено
-в `requirements.txt` и не должно удаляться без обновления SDK OpenAI.
-
-## Проверка и диагностика
+## Diagnostics
 
 ```bash
 bash /opt/telegram-group-assistant/deploy/check-server.sh
 systemctl status telegram-group-assistant --no-pager
 journalctl -u telegram-group-assistant -n 100 --no-pager
-curl -fsS https://bot.n7k.ru/health
+curl -fsS https://your-domain.example/health
 ```
 
-Если Caddy отвечает `502`, обычно приложение не слушает `127.0.0.1:8000`.
-Сначала проверьте журнал `telegram-group-assistant`, затем перезапустите
-службу.
+If Caddy returns `502`, the application usually is not listening on `127.0.0.1:8000`. Check the service journal first, then restart the service.
 
-## Безопасность
+## Security
 
-- Не отправляйте ключи OpenRouter, Telegram-токены и root-пароли в репозиторий.
-- Если секрет был отправлен в чат, отзовите его у провайдера и выпустите новый.
-- Не публикуйте порт панели 3X-UI без необходимости и используйте надёжный
-  пароль.
-- Web App-экраны пока доступны всем, у кого есть ссылка с `screen_id`; не
-  храните в них чувствительные данные до добавления проверки Telegram init data.
+- Do not commit Telegram tokens, LLM API keys, root passwords, private keys, `.env` files, production domains, server IP addresses, provider names, or account details.
+- If a secret was pasted into a chat or committed, rotate it before serious production use.
+- Web App screen URLs are public to anyone who has the `screen_id` link until Telegram init data verification and access checks are added.
